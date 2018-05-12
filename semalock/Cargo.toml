@@ -6,7 +6,7 @@ description = "A library for concurrently writing to files in a safe and efficie
 repository = "https://github.com/longshorej/semalock"
 homepage = "https://github.com/longshorej/semalock"
 readme = "../README.md"
-keywords = ["concurrent", "file", "semaphore", "posix", "lock", "mutex"]
+keywords = ["concurrent", "file", "semaphore", "lock", "mutex"]
 license = "Apache-2.0"
 
 [dependencies]
