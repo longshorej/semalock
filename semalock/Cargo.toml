@@ -2,6 +2,12 @@
 name = "semalock"
 version = "0.1.0"
 authors = ["Jason Longshore <hello@jasonlongshore.com>"]
+description = "A library for concurrently writing to files in a safe and efficient manner."
+repository = "https://github.com/longshorej/semalock"
+homepage = "https://github.com/longshorej/semalock"
+readme = "README.md"
+keywords = ["concurrent", "file", "semaphore", "posix", "lock", "mutex"]
+license = "Apache-2.0"
 
 [dependencies]
 errno = "0.2.3"
