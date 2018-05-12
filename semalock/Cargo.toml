@@ -1,6 +1,11 @@
 [package]
 name = "semalock"
 version = "0.1.0"
-authors = ["Jason Longshore <longshorej@gmail.com>"]
+authors = ["Jason Longshore <hello@jasonlongshore.com>"]
 
 [dependencies]
+errno = "0.2.3"
+fs2 = "0.4.3"
+libc = { git = "https://github.com/longshorej/libc", branch = "sem_getvalue" }
+#libc = "0.2"
+tempfile = "3"
