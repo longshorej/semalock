@@ -157,7 +157,10 @@ impl Semalock {
 
         let mut value: i32 = 0;
 
-        let code = unsafe { libc::sem_getvalue(self.sem, &mut value) };
+        // @TODO uncomment when new release of libc with my PR is done
+        //let code = unsafe { libc::sem_getvalue(self.sem, &mut value) };
+
+        let code = 0;
 
         if code == 0 && value == 0 {
             let unlock_code = unsafe { libc::sem_post(self.sem) };
