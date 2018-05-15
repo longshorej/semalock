@@ -20,13 +20,9 @@ lock.with(|lock| {
 });
 ```
 
-# Usage (JVM)
-
-A subproject, `semalock-jvm`, provides bindings for the Java Virtual Machine so that you can use it in your Java and Scala programs.
-
 # Development
 
-The project is split into multiple subdirectories. You can find the main project in `semalock`.
+You'll need Cargo. More notes to come at a later date.
 
 # Author
 
