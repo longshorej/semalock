@@ -55,6 +55,13 @@ The following will not work:
 
 You'll need Cargo. More notes to come at a later date.
 
+## Releasing
+
+1) Upgrade version in `Cargo.toml`
+2) Commit changes
+3) Create and push a tag: ```git tag v<version>; git push v<version>```
+4) Release on crates.io: ```cargo publish```
+
 # Author
 
 Jason Longshore <hello@jasonlongshore.com>

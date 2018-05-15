@@ -1,6 +1,6 @@
 [package]
 name = "semalock"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Jason Longshore <hello@jasonlongshore.com>"]
 description = "A library for concurrently writing to files in a safe and efficient manner."
 repository = "https://github.com/longshorej/semalock"
