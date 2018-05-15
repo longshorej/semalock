@@ -1,5 +1,9 @@
 # semalock
 
+[![Crates.io](https://img.shields.io/crates/v/semalock.svg?style=flat-square)](https://crates.io/crates/semalock)
+[![Crates.io](https://img.shields.io/crates/d/semalock.svg?style=flat-square)](https://crates.io/crates/semalock)
+[![Travis](https://img.shields.io/travis/longshorej/semalock.svg?style=flat-square)](https://travis-ci.org/longshorej/semalock)
+
 semalock is a Rust library for controlling concurrent access to files on POSIX operating systems in an efficient manner.
 
 It uses a combination of POSIX named semaphores and exclusive file locks to safely and efficiently acquire exclusive access to a file. This has been observed to be particularly efficient on Linux, with under 5% of CPU time spent on lock overhead with 8192 processes.
