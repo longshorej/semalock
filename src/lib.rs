@@ -20,10 +20,6 @@ pub struct Semalock {
     sem_name_cstring: CString
 }
 
-pub fn testing(one: i32, two: i32) -> i32 {
-    one + two
-}
-
 impl Semalock {
     /// Creates a new `Semalock`, opening or creating the file
     /// for reading and writing. A POSIX named semaphore is
@@ -223,6 +219,66 @@ fn basic_usage() {
     }).unwrap();
 
     remove_file(path).unwrap();
+}
+
+// @TODO concurrency_processes (should just work)
+
+#[test]
+fn concurrency_threads() {
+    use std::fs;
+    use std::io::prelude::*;
+    use std::io::{ SeekFrom, Write };
+
+    let path_str = {
+        // immediately goes out of scope and gets deleted,
+        // then we manage it ourselves
+        let path_str = tempfile::NamedTempFile::new()
+            .unwrap()
+            .path()
+            .to_str()
+            .unwrap()
+            .to_string();
+
+        assert!(!Path::new(&path_str).exists());
+
+        path_str
+    };
+
+    let num_threads = 512;
+
+    let threads: Vec<std::thread::JoinHandle<()>> =
+        (0..num_threads).map(|n| {
+            let n = n.clone();
+            let path_str = path_str.clone();
+            std::thread::spawn(move || {
+                let mut lock = Semalock::new(Path::new(&path_str)).unwrap();
+                lock.with(|lock| {
+                    lock.file.seek(SeekFrom::End(0)).unwrap();
+                    lock.file.write_all(format!("{}\n", n).as_bytes()).unwrap();
+                }).unwrap();
+            })
+        }).collect();
+
+    for t in threads {
+        t.join().unwrap();
+    }
+
+    let path = Path::new(&path_str);
+    let mut result = String::new();
+    let mut file = File::open(&path).unwrap();
+    file.read_to_string(&mut result).unwrap();
+    let lock = Semalock::new(Path::new(&path)).unwrap();
+    lock.unlink().unwrap();
+    fs::remove_file(Path::new(&path)).unwrap();
+
+    let sum = result
+        .lines()
+        .map(|l| l.parse::<i32>().unwrap())
+        .sum::<i32>();
+
+    let expected = num_threads * (num_threads - 1) / 2;
+
+    assert_eq!(sum, expected);
 }
 
 #[test]
