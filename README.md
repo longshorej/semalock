@@ -20,13 +20,36 @@ lock.with(|lock| {
 });
 ```
 
-# Usage (JVM)
+# Supported Operating Systems
 
-A subproject, `semalock-jvm`, provides bindings for the Java Virtual Machine so that you can use it in your Java and Scala programs.
+The following operating systems have been tested:
+
+* GNU/Linux 4.16
+
+The following operating systems have not been tested but should work:
+
+* FreeBSD
+* GNU/Linux 2.6+
+* macOS 10.4+
+* NetBSD
+* OpenBSD
+
+Supported operating systems must support provide the following:
+
+* flock
+* sem_get_value
+* sem_open
+* sem_post
+* sem_timedwait
+* sem_unlink
+
+The following will not work:
+
+* Windows NT
 
 # Development
 
-The project is split into multiple subdirectories. You can find the main project in `semalock`.
+You'll need Cargo. More notes to come at a later date.
 
 # Author
 
