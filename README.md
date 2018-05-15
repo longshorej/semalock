@@ -57,10 +57,11 @@ You'll need Cargo. More notes to come at a later date.
 
 ## Releasing
 
-1) Upgrade version in `Cargo.toml`
-2) Commit changes
-3) Create and push a tag: ```git tag v<version>; git push v<version>```
-4) Release on crates.io: ```cargo publish```
+1) Sanity: ```cargo clean; cargo test```
+2) Upgrade version in `Cargo.toml`
+3) Commit changes
+4) Create and push a tag: ```git tag v<version>; git push v<version>```
+5) Release on crates.io: ```cargo publish```
 
 # Author
 
