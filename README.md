@@ -20,6 +20,33 @@ lock.with(|lock| {
 });
 ```
 
+# Supported Operating Systems
+
+The following operating systems have been tested:
+
+* GNU/Linux 4.16
+
+The following operating systems have not been tested but should work:
+
+* FreeBSD
+* GNU/Linux 2.6+
+* macOS 10.4+
+* NetBSD
+* OpenBSD
+
+Supported operating systems must support provide the following:
+
+* flock
+* sem_get_value
+* sem_open
+* sem_post
+* sem_timedwait
+* sem_unlink
+
+The following will not work:
+
+* Windows NT
+
 # Development
 
 You'll need Cargo. More notes to come at a later date.

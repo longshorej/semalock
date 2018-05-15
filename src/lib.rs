@@ -1,20 +1,20 @@
-extern crate errno;
-extern crate fs2;
+extern crate errno; /* @TODO really need a dep for this? */
 extern crate libc;
 extern crate tempfile;
 
-use fs2::FileExt;
 use std::collections::hash_map::DefaultHasher;
 use std::error::Error;
 use std::ffi::CString;
 use std::hash::{Hash, Hasher};
 use std::fs::{ File, OpenOptions };
+use std::os::unix::io::AsRawFd;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub type SemalockError = String;
 
 pub struct Semalock {
+    fd: i32,
     pub file: File,
     sem: *mut libc::sem_t,
     sem_name_cstring: CString
@@ -41,6 +41,8 @@ impl Semalock {
             .open(path)
             .map_err(|e| format!("OpenOptions::open failed: {}", e.description()))
             .and_then(move |file| {
+                let fd = file.as_raw_fd();
+
                 let file_hash = {
                     let mut s = DefaultHasher::new();
                     path.to_string_lossy().hash(&mut s);
@@ -52,6 +54,7 @@ impl Semalock {
                 CString::new(sem_name)
                     .map_err(|e| format!("CString::new failed: {}", e.description()))
                     .and_then(move |sem_name_cstring| {
+                        // @TODO move most of this out of unsafe
                         let sem = unsafe {
                             let sem = libc::sem_open(sem_name_cstring.as_ptr(), libc::O_CREAT, 0o644, 1);
 
@@ -63,7 +66,7 @@ impl Semalock {
                             }
                         };
 
-                        sem.map(|sem| Semalock { file, sem, sem_name_cstring })
+                        sem.map(|sem| Semalock { fd, file, sem, sem_name_cstring })
                     })
             })
     }
@@ -103,10 +106,6 @@ impl Semalock {
 
     fn acquire(&self) -> Result<(), SemalockError> {
         loop {
-            // @TODO switch to sem timeout, and allow progress if we timeout
-            //       assuming process died. we should probably unlink the old
-            //       semaphore or something?
-
             // algo:
             //
             // acquire semaphore with a timeout (say 10 seconds?)
@@ -120,7 +119,10 @@ impl Semalock {
             //     if failed, repeat acquiring semaphore with timeout
 
             let sem_timeout_seconds = 10;
-            let now_elapsed_epoch = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+            let now_elapsed_epoch = match SystemTime::now().duration_since(UNIX_EPOCH) {
+                Ok(r) => r,
+                Err(e) => return Err(e.to_string())
+            };
             let sem_timeout = libc::timespec {
                 tv_sec: (now_elapsed_epoch.as_secs() + sem_timeout_seconds) as i64,
                 tv_nsec: (now_elapsed_epoch.subsec_nanos()) as i64
@@ -128,23 +130,38 @@ impl Semalock {
             let call_status = unsafe { libc::sem_timedwait(self.sem, &sem_timeout) };
 
             if call_status == 0 {
-                self.file.lock_exclusive().unwrap(); // @TODO deal with fail, compose etc
+                let flock_code = unsafe { libc::flock(self.fd, libc::LOCK_EX) };
+
+                if flock_code != 0 {
+                    let e = errno::errno();
+                    return Err(format!("flock {}: {}", e.0, e));
+                }
 
                 return Ok(());
             } else {
                 let e = errno::errno();
 
                 match e.0 {
-                    libc::EINTR => {
-
-                    },
+                    libc::EINTR => {},
 
                     libc::ETIMEDOUT => {
-                        let file_locked = self.file.try_lock_exclusive().is_ok();
+                        let flock_code = unsafe { libc::flock(self.fd, libc::LOCK_EX) };
 
-                        if file_locked {
-                            return Ok(())
+                        if flock_code != 0 {
+                            let e = errno::errno();
+
+                            match e.0 {
+                                libc::EINTR => {},
+
+                                libc::EWOULDBLOCK => {},
+
+                                _ => {
+                                    return Err(format!("flock {}: {}", e.0, e))
+                                }
+                            }
                         }
+
+                        return Ok(());
                     },
 
                     _ => {
@@ -156,34 +173,36 @@ impl Semalock {
     }
 
     fn release(&self) -> Result<(), SemalockError> {
-        // @TODO obv compose, deal with failure, rollback et al
-        self.file.unlock().unwrap();
+        let flock_code = unsafe { libc::flock(self.fd, libc::LOCK_UN) };
 
-        let mut value: i32 = 0;
+        if flock_code != 0 {
+            let e = errno::errno();
+            return Err(format!("flock {}: {}", e.0, e));
+        }
 
         // @TODO uncomment when new release of libc with my PR is done
-        //let code = unsafe { libc::sem_getvalue(self.sem, &mut value) };
+        //let mut value: i32 = 0;
+        //let sem_getvalue_code = unsafe { libc::sem_getvalue(self.sem, &mut value) };
+        let sem_value: i32 = 0;
+        let sem_getvalue_code = 0;
 
-        let code = 0;
+        if sem_getvalue_code != 0 {
+            let e = errno::errno();
+            return Err(format!("sem_getvalue {}: {}", e.0, e));
+        }
 
-        if code == 0 && value == 0 {
-            let unlock_code = unsafe { libc::sem_post(self.sem) };
+        // @TODO sem_value greater than 0, race with other process or bug
+        if sem_value == 0 {
+            let sem_post_code = unsafe { libc::sem_post(self.sem) };
 
-            if unlock_code == 0 {
-                Ok(())
-            } else {
+            if sem_post_code != 0 {
                 let e = errno::errno();
 
-                Err(format!("sem_post {}: {}", e.0, e))
+                return Err(format!("sem_post {}: {}", e.0, e));
             }
-        } else if code == 0 {
-            // @TODO bug ? shouldn't happen unless another process increased it on us
-            Ok(())
-        } else {
-            let e = errno::errno();
-
-            Err(format!("sem_getvalue {}: {}", e.0, e))
         }
+
+        Ok(())
     }
 }
 

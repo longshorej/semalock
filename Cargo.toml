@@ -11,7 +11,6 @@ license = "Apache-2.0"
 
 [dependencies]
 errno = "0.2.3"
-fs2 = "0.4.3"
 #libc = { git = "https://github.com/longshorej/libc", branch = "sem_getvalue" }
 libc = "0.2"
 tempfile = "3"
