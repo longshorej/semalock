@@ -5,8 +5,8 @@ extern crate tempfile;
 use std::collections::hash_map::DefaultHasher;
 use std::error::Error;
 use std::ffi::CString;
+use std::fs::{File, OpenOptions};
 use std::hash::{Hash, Hasher};
-use std::fs::{ File, OpenOptions };
 use std::os::unix::io::AsRawFd;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -17,7 +17,7 @@ pub struct Semalock {
     fd: i32,
     pub file: File,
     sem: *mut libc::sem_t,
-    sem_name_cstring: CString
+    sem_name_cstring: CString,
 }
 
 impl Semalock {
@@ -52,7 +52,8 @@ impl Semalock {
                     .and_then(move |sem_name_cstring| {
                         // @TODO move most of this out of unsafe
                         let sem = unsafe {
-                            let sem = libc::sem_open(sem_name_cstring.as_ptr(), libc::O_CREAT, 0o644, 1);
+                            let sem =
+                                libc::sem_open(sem_name_cstring.as_ptr(), libc::O_CREAT, 0o644, 1);
 
                             if sem == libc::SEM_FAILED {
                                 let e = errno::errno();
@@ -62,7 +63,12 @@ impl Semalock {
                             }
                         };
 
-                        sem.map(|sem| Semalock { fd, file, sem, sem_name_cstring })
+                        sem.map(|sem| Semalock {
+                            fd,
+                            file,
+                            sem,
+                            sem_name_cstring,
+                        })
                     })
             })
     }
@@ -81,23 +87,23 @@ impl Semalock {
                 let e = errno::errno();
                 Err(format!("sem_unlink {}: {}", e.0, e))
             }
-        }).and_then(|a| a)
+        })
+        .and_then(|a| a)
     }
 
     /// Acquires the lock, runs the provided function, and releases the lock. If the provided
     /// function panics, the lock is not automatically released. In this case, the secondary
     /// level of exclusive file locks will take effect, temporarily affecting performance
     /// until a timeout occurs and normal behavior is restored (in other applications).
-    pub fn with<A, B>(&mut self, a: A) -> Result<B, SemalockError> where A: Fn(&mut Self) -> B {
-        self
-            .acquire()
-            .and_then(|_| {
-                let result = a(self);
+    pub fn with<A, B>(&mut self, a: A) -> Result<B, SemalockError>
+    where
+        A: FnOnce(&mut Self) -> B,
+    {
+        self.acquire().and_then(|_| {
+            let result = a(self);
 
-                self
-                    .release()
-                    .map(|_| result)
-            })
+            self.release().map(|_| result)
+        })
     }
 
     fn acquire(&self) -> Result<(), SemalockError> {
@@ -117,11 +123,11 @@ impl Semalock {
             let sem_timeout_seconds = 10;
             let now_elapsed_epoch = match SystemTime::now().duration_since(UNIX_EPOCH) {
                 Ok(r) => r,
-                Err(e) => return Err(e.to_string())
+                Err(e) => return Err(e.to_string()),
             };
             let sem_timeout = libc::timespec {
                 tv_sec: (now_elapsed_epoch.as_secs() + sem_timeout_seconds) as i64,
-                tv_nsec: (now_elapsed_epoch.subsec_nanos()) as i64
+                tv_nsec: (now_elapsed_epoch.subsec_nanos()) as i64,
             };
             let call_status = unsafe { libc::sem_timedwait(self.sem, &sem_timeout) };
 
@@ -138,7 +144,7 @@ impl Semalock {
                 let e = errno::errno();
 
                 match e.0 {
-                    libc::EINTR => {},
+                    libc::EINTR => {}
 
                     libc::ETIMEDOUT => {
                         let flock_code = unsafe { libc::flock(self.fd, libc::LOCK_EX) };
@@ -147,22 +153,18 @@ impl Semalock {
                             let e = errno::errno();
 
                             match e.0 {
-                                libc::EINTR => {},
+                                libc::EINTR => {}
 
-                                libc::EWOULDBLOCK => {},
+                                libc::EWOULDBLOCK => {}
 
-                                _ => {
-                                    return Err(format!("flock {}: {}", e.0, e))
-                                }
+                                _ => return Err(format!("flock {}: {}", e.0, e)),
                             }
                         }
 
                         return Ok(());
-                    },
-
-                    _ => {
-                        return Err(format!("sem_timedwait {}: {}", e.0, e))
                     }
+
+                    _ => return Err(format!("sem_timedwait {}: {}", e.0, e)),
                 }
             }
         }
@@ -216,7 +218,8 @@ fn basic_usage() {
 
     lock.with(|lock| {
         lock.file.write_all(b"hello world!").unwrap();
-    }).unwrap();
+    })
+    .unwrap();
 
     remove_file(path).unwrap();
 }
@@ -227,7 +230,7 @@ fn basic_usage() {
 fn concurrency_threads() {
     use std::fs;
     use std::io::prelude::*;
-    use std::io::{ SeekFrom, Write };
+    use std::io::{SeekFrom, Write};
 
     let path_str = {
         // immediately goes out of scope and gets deleted,
@@ -246,8 +249,8 @@ fn concurrency_threads() {
 
     let num_threads = 512;
 
-    let threads: Vec<std::thread::JoinHandle<()>> =
-        (0..num_threads).map(|n| {
+    let threads: Vec<std::thread::JoinHandle<()>> = (0..num_threads)
+        .map(|n| {
             let n = n.clone();
             let path_str = path_str.clone();
             std::thread::spawn(move || {
@@ -255,9 +258,11 @@ fn concurrency_threads() {
                 lock.with(|lock| {
                     lock.file.seek(SeekFrom::End(0)).unwrap();
                     lock.file.write_all(format!("{}\n", n).as_bytes()).unwrap();
-                }).unwrap();
+                })
+                .unwrap();
             })
-        }).collect();
+        })
+        .collect();
 
     for t in threads {
         t.join().unwrap();
@@ -291,14 +296,15 @@ fn unlink_and_use_again() {
     let path = file.path();
     let mut lock = Semalock::new(path).unwrap();
 
-    lock.with(|l| l.file.write_all(b"hello world!").unwrap()).unwrap();
+    lock.with(|l| l.file.write_all(b"hello world!").unwrap())
+        .unwrap();
 
     lock.unlink().unwrap();
 
-
     let mut lock = Semalock::new(path).unwrap();
 
-    lock.with(|l| l.file.write_all(b"hello world 2!").unwrap()).unwrap();
+    lock.with(|l| l.file.write_all(b"hello world 2!").unwrap())
+        .unwrap();
 
     lock.unlink().unwrap();
 
