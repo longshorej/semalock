@@ -8,7 +8,7 @@ semalock is a Rust library for controlling concurrent access to files on POSIX o
 
 It uses a combination of POSIX named semaphores and exclusive file locks to safely and efficiently acquire exclusive access to a file. This has been observed to be particularly efficient on Linux, with under 5% of CPU time spent on lock overhead with 8192 processes.
 
-# Usage
+## Usage
 
 The following shows usage of semalock. This program opens `/some/file` and appends some text to it. Try it with GNU parallel to measure performance amongst multiple competing processes.
 
@@ -24,7 +24,7 @@ lock.with(|lock| {
 });
 ```
 
-# Supported Operating Systems
+## Supported Operating Systems
 
 The following operating systems have been tested:
 
@@ -51,18 +51,27 @@ The following will not work:
 
 * Windows NT
 
-# Development
+## Release Notes
 
-You'll need Cargo. More notes to come at a later date.
+### 0.2.0 - 2018-05-14
 
-## Releasing
+* Initial release.
 
-1) Sanity: ```cargo clean; cargo test```
-2) Upgrade version in `Cargo.toml`
-3) Commit changes
-4) Create and push a tag: ```git tag v<version>; git push v<version>```
-5) Release on crates.io: ```cargo publish```
+## Developer Notes
 
-# Author
+To run the tests, execute the following:
+
+```bash
+cargo test
+```
+
+To release the create, perform the following:
+
+1. Edit `Cargo.toml`, bumping the version as appropriate.
+2. Edit `README.md`, adding an entry to the Release Notes, and updating the TOML snippet's version.
+3. Commit these changes and push them to `master`.
+4. Create and push a tag that starts with "v" -- e.g. "v0.4.0"
+
+## Author
 
 Jason Longshore <hello@jasonlongshore.com>
