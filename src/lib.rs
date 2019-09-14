@@ -127,7 +127,7 @@ impl Semalock {
             };
             let sem_timeout = libc::timespec {
                 tv_sec: (now_elapsed_epoch.as_secs() + sem_timeout_seconds) as i64,
-                tv_nsec: (now_elapsed_epoch.subsec_nanos()) as i64,
+                tv_nsec: i64::from(now_elapsed_epoch.subsec_nanos()),
             };
             let call_status = unsafe { libc::sem_timedwait(self.sem, &sem_timeout) };
 
@@ -179,17 +179,16 @@ impl Semalock {
         }
 
         // @TODO uncomment when new release of libc with my PR is done
-        //let mut value: i32 = 0;
-        //let sem_getvalue_code = unsafe { libc::sem_getvalue(self.sem, &mut value) };
-        let sem_value: i32 = 0;
-        let sem_getvalue_code = 0;
+        let mut sem_value: i32 = 0;
+        let sem_getvalue_code = unsafe { libc::sem_getvalue(self.sem, &mut sem_value) };
 
         if sem_getvalue_code != 0 {
             let e = errno::errno();
             return Err(format!("sem_getvalue {}: {}", e.0, e));
         }
 
-        // @TODO sem_value greater than 0, race with other process or bug
+        // @FIXME think about sem_value greater than 0, race with other process or bug
+        //        worst case, should be fallback to file-based lock and temporay perfhit
         if sem_value == 0 {
             let sem_post_code = unsafe { libc::sem_post(self.sem) };
 
@@ -251,7 +250,6 @@ fn concurrency_threads() {
 
     let threads: Vec<std::thread::JoinHandle<()>> = (0..num_threads)
         .map(|n| {
-            let n = n.clone();
             let path_str = path_str.clone();
             std::thread::spawn(move || {
                 let mut lock = Semalock::new(Path::new(&path_str)).unwrap();
