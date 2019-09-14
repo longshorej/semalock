@@ -53,6 +53,11 @@ The following will not work:
 
 ## Release Notes
 
+### 0.3.0 - 2019-09-13
+
+* `Semalock::with` now takes an `FnOnce` instead of an `Fn`.
+* Various project hygiene changes
+
 ### 0.2.0 - 2018-05-14
 
 * Initial release.

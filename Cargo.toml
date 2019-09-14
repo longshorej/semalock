@@ -1,11 +1,11 @@
 [package]
 name = "semalock"
-version = "0.2.0"
+version = "0.3.0" #ci-verify-version
 authors = ["Jason Longshore <hello@jasonlongshore.com>"]
 description = "A library for concurrently writing to files in a safe and efficient manner."
 repository = "https://github.com/longshorej/semalock"
 homepage = "https://github.com/longshorej/semalock"
-readme = "../README.md"
+readme = "README.md"
 keywords = ["concurrent", "file", "semaphore", "lock", "mutex"]
 license = "Apache-2.0"
 
