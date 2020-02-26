@@ -55,7 +55,7 @@ The following will not work:
 
 ### 0.3.1 - 2020-02-25
 
-* Fix a compilation error on x86
+* Fix a compilation error on x86 - thanks to @unpluggedcoder
 
 ### 0.3.0 - 2019-09-13
 
