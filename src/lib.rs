@@ -126,8 +126,8 @@ impl Semalock {
                 Err(e) => return Err(e.to_string()),
             };
             let sem_timeout = libc::timespec {
-                tv_sec: (now_elapsed_epoch.as_secs() + sem_timeout_seconds) as i64,
-                tv_nsec: i64::from(now_elapsed_epoch.subsec_nanos()),
+                tv_sec: (now_elapsed_epoch.as_secs() + sem_timeout_seconds) as libc::time_t,
+                tv_nsec: (now_elapsed_epoch.subsec_nanos()) as libc::c_long,
             };
             let call_status = unsafe { libc::sem_timedwait(self.sem, &sem_timeout) };
 
