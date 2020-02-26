@@ -53,6 +53,10 @@ The following will not work:
 
 ## Release Notes
 
+### 0.3.1 - 2020-02-25
+
+* Fix a compilation error on x86
+
 ### 0.3.0 - 2019-09-13
 
 * `Semalock::with` now takes an `FnOnce` instead of an `Fn`.
@@ -73,7 +77,7 @@ cargo test
 To release the create, perform the following:
 
 1. Edit `Cargo.toml`, bumping the version as appropriate.
-2. Edit `README.md`, adding an entry to the Release Notes, and updating the TOML snippet's version.
+2. Edit `README.md`, adding an entry to the Release Notes.
 3. Commit these changes and push them to `master`.
 4. Create and push a tag that starts with "v" -- e.g. "v0.4.0"
 
